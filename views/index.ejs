@@ -5,6 +5,13 @@
     <title>テスト</title>
   </head>
   <body>
-    <%= category %>
+    <div id="a">
+      //試しにここに１問目のカテゴリを表示してみるまでやってみる
+    </div>
   </body>
+  <script type="text/javascript">
+    const quizs = <%- quizArray %>; //JSONは%-で出力
+    console.log(quizs);
+    document.getElementById('a').textContent = quizs[0].category;
+  </script>
 </html>
