@@ -1,10 +1,148 @@
-<!DOCTYPE html>
 <html lang="ja" dir="ltr">
-  <head>
-    <meta charset="utf-8">
-    <title>テスト</title>
-  </head>
-  <body>
-    <%= category %>
-  </body>
+
+<head>
+  <meta charset="utf-8">
+  <title>テスト</title>
+</head>
+
+<body>
+  <h1 id="title">クイズ</h1>
+  <div id="quizState">
+    <h3 id="genre">
+
+    </h3>
+    <h3 id="difficulty">
+
+    </h3>
+  </div>
+  <hr>
+  <div id="quizTxt">
+    以下のボタンをクリックしてスタート
+  </div>
+  <hr>
+  <div id="answersBtnContainer">
+    <button type="button" id="startBtn">スタート</button>
+  </div>
+
+  <script type="text/javascript">
+    let i = 0;
+    let correct_count = 0;
+
+    const initialTxt = () => {
+      const titleTxt = document.getElementById('title');
+      const quizTxt = document.getElementById('quizTxt');
+      titleTxt.textContent = 'クイズデータを取得中';
+      quizTxt.textContent = '少々お待ちください';
+    }
+
+    const readQuiz = async () => {
+      initialTxt();
+      const res = await fetch('http://localhost:3000/api/json');
+      const data = await res.json();
+      return data;
+    }
+
+    const answerBtnCreate = (len, answers, i, data) => {
+      if (i === 0) {
+        document.getElementById('title').textContent = '問題' + Number(i + 1);
+        //下記コードにて.textContentでは&#039などの実体参照が表示されてしまう。参考 https://teratail.com/questions/284907
+        document.getElementById('quizTxt').innerHTML = data[i].question;
+        document.getElementById('genre').textContent = '[ジャンル]' + data[i].category;
+        document.getElementById('difficulty').textContent = '[難易度]' + data[i].difficulty;
+      } else {
+        document.getElementById('quizTxt').textContent = data.question;
+        document.getElementById('genre').textContent = '[ジャンル]' + data.category;
+        document.getElementById('difficulty').textContent = '[難易度]' + data.difficulty;
+      }
+      for (let x = 0; x < len; x++) {
+        if (i === 0) {
+          const newP = document.createElement('p');
+          const newBtn = document.createElement('button');
+          newBtn.classList.add('answerBtn');
+          newBtn.value = x;
+          newBtn.textContent = answers[x];
+          newP.appendChild(newBtn);
+          document.getElementById('answersBtnContainer').appendChild(newP);
+        } else {
+          document.getElementsByClassName('answerBtn')[x].textContent = answers[x];
+        }
+      }
+    }
+
+    document.getElementById('startBtn').addEventListener('click', () => {
+      const awaitForClick = (data) => {
+        return new Promise((resolve, reject) => {
+          if (i < 9) {
+            i++;
+            resolve(data[i]);
+          } else {
+            reject('終わり');
+          }
+        });
+      };
+
+      startBtn.style.display = 'none';
+
+      readQuiz()
+        .then(data => {
+          console.log(data);
+          let answersData = [];
+          let answersLength = 4;
+          for (let n = 0; n < answersLength - 1; n++) {
+            answersData.push(data[i].incorrect_answers[n]);
+          }
+          answersData.push(data[i].correct_answer);
+          for (j = answersLength; 1 < j; j--) {
+            k = Math.floor(Math.random() * j);
+            [answersData[k], answersData[j - 1]] = [answersData[j - 1], answersData[k]];
+          }
+          answerBtnCreate(answersLength, answersData, i, data);
+          const answer_button = document.getElementsByClassName('answerBtn');
+
+          for (let a = 0; a < answer_button.length; a++) {
+            answer_button[a].addEventListener('click', (event) => {
+              event.target.textContent === data[i].correct_answer ? correct_count++ : false;
+              awaitForClick(data)
+                .then((value) => {
+                  document.getElementById('title').textContent = '問題' + Number(i + 1);
+                  answersData = [];
+                  for (let num = 0; num < answersLength - 1; num++) {
+                    answersData.push(data[i].incorrect_answers[num]);
+                  }
+                  answersData.push(data[i].correct_answer);
+                  for (j = answersLength; 1 < j; j--) {
+                    k = Math.floor(Math.random() * j);
+                    [answersData[k], answersData[j - 1]] = [answersData[j - 1], answersData[k]];
+                  }
+                  answerBtnCreate(answersLength, answersData, i, data[i]);
+                })
+                .catch(end => {
+                  document.getElementById('title').textContent = 'あなたの正解数は' + correct_count + 'です！！';
+                  document.getElementById('genre').remove();
+                  document.getElementById('difficulty').remove();
+                  document.getElementById('quizTxt').textContent = 'もう一度挑戦する場合は下のボタンをクリック！';
+                  const parent = document.getElementById('answersBtnContainer');
+                  while (parent.firstChild) {
+                    parent.removeChild(parent.firstChild);
+                  }
+                  const newBtn_for_restart = document.createElement('button');
+                  newBtn_for_restart.textContent = '再チャレンジ';
+                  newBtn_for_restart.id = 'restartBtn';
+                  document.getElementById('answersBtnContainer').appendChild(newBtn_for_restart);
+                  const restart = document.getElementById('restartBtn');
+                  restart.addEventListener('click', () => {
+                    window.location.reload(true);
+                  })
+                });
+            });
+          }
+        })
+        .catch(err => {
+          console.log(err);
+        })
+    });
+  </script>
+
+</body>
+
 </html>
