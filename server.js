@@ -2,28 +2,52 @@ const express = require('express');
 const app = express();
 const request = require('request');
 const bodyParser = require('body-parser');
-//const async = require('async');
-const URL = 'https://opentdb.com/api.php?amount=10';
+const URL = 'https://opentdb.com/api.php?amount=10&type=multiple';
+const urlencodedParser = bodyParser.urlencoded({
+  extended: true
+});
+const options = {
+  method: 'GET',
+  url: URL,
+  json: true
+};
+
+class Quiz {
+  constructor(category, type, difficulty, question, correct_answer, incorrect_answers) {
+    this.category = category;
+    this.type = type;
+    this.difficulty = difficulty;
+    this.question = question;
+    this.correct_answer = correct_answer;
+    this.incorrect_answers = incorrect_answers;
+  }
+}
 
 app.set('view engine', 'ejs');
 
-const urlencodedParser = bodyParser.urlencoded({
-    extended: true
-});
 app.use(bodyParser.json());
 
-const options = {
-  method: 'GET',
-  json: true,
-  url: URL
-};
+app.get('/', (req, res) => {
+  res.render('index');
+});
 
-app.get('/', urlencodedParser, (req, res) => {
+app.get('/api/json', urlencodedParser, (req, res) => {
   request(options, (err, response, body) => {
-    const results = body.results[0]
-    const category = results.category;
-    console.log(body.results[0]);
-    res.render('index', {category});
+    const quizDatas = body.results;
+    let quizArray = [];
+    for (let index in quizDatas) {
+      let quiz = new Quiz(
+        quizDatas[index].category,
+        quizDatas[index].type,
+        quizDatas[index].difficulty,
+        quizDatas[index].question,
+        quizDatas[index].correct_answer,
+        quizDatas[index].incorrect_answers
+      );
+      quizArray.push(quiz);
+    }
+    res.header('Content-Type', 'application/json; charset=utf-8');
+    res.json(quizArray);
   });
 });
 
